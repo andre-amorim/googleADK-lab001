@@ -1,0 +1,7 @@
+# .gitignore
+
+# Virtual environment (ephemeral, ignored by git)
+.venv/
+
+# Environment variables (contains API keys, do not commit)
+.env
