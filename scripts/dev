@@ -9,6 +9,7 @@ SYSTEM=""
 SHELL_ARG=""
 RUN_CMD=""
 RUN_CMD_ARGS=()
+FORCE=false
 
 show_help(){
 	cat <<'EOF'
@@ -40,6 +41,8 @@ while [[ $# -gt 0 ]]; do
 			shift
 			RUN_CMD_ARGS=("$@")
 			break;;
+		--force)
+			FORCE=true; shift;;
 		-h|--help)
 			show_help; exit 0;;
 		*)
@@ -82,6 +85,36 @@ if [[ -z "$SHELL_ARG" ]]; then
 		SHELL_ARG=$(basename "$SHELL")
 	else
 		SHELL_ARG="bash"
+	fi
+fi
+
+# If a system was requested explicitly, ensure it matches the detected host system
+if [[ -n "$SYSTEM" ]]; then
+	DETECTED=""
+	OS=$(uname -s)
+	ARCH=$(uname -m)
+	if [[ "$OS" == "Darwin" ]]; then
+		if [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
+			DETECTED="aarch64-darwin"
+		else
+			DETECTED="x86_64-darwin"
+		fi
+	elif [[ "$OS" == "Linux" ]]; then
+		if [[ "$ARCH" == "x86_64" ]]; then
+			DETECTED="x86_64-linux"
+		elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+			DETECTED="aarch64-linux"
+		else
+			DETECTED="x86_64-linux"
+		fi
+	else
+		DETECTED="x86_64-linux"
+	fi
+
+	if [[ "$SYSTEM" != "$DETECTED" && "$FORCE" != "true" ]]; then
+		echo "⚠️  Requested system '$SYSTEM' differs from detected system '$DETECTED'."
+		echo "Switching to detected system '$DETECTED' to avoid build error."
+		SYSTEM="$DETECTED"
 	fi
 fi
 

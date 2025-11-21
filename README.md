@@ -59,6 +59,12 @@ Follow these steps to set up your development environment:
     # You can also specify the system or shell explicitly
     ./scripts/dev --system x86_64-linux --shell zsh
 
+    # If you request a system that doesn't match your host (e.g., asking
+    # for `x86_64-linux` on an `aarch64` machine), the script will auto-fallback
+    # to the detected system and print a warning. Use `--force` to bypass the
+    # auto-fallback and attempt the requested system (may fail on incompatible hosts).
+    ./scripts/dev --system x86_64-linux --force --run 'python --version'
+
     # Run a command without entering the interactive shell (supports multiple args)
     ./scripts/dev --run python --version
     # Or run a shell command (use quotes for a sequence):

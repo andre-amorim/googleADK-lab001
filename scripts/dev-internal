@@ -37,8 +37,11 @@ VENV_BIN="$(pwd)/.venv/bin"
 export PATH="$VENV_BIN:$PATH"
 
 if [[ ${#RUN_CMD_ARGS[@]} -gt 0 ]]; then
-  # Execute the provided command (preserve arguments):
-  exec "${RUN_CMD_ARGS[@]}"
+  # Join the args into a single command string and run via bash -c so shell
+  # features (pipes, semicolons, expansion) work. This makes --run accept
+  # commands like: --run 'python -m http.server 8000' or --run "python -c 'print(1)'".
+  RUN_CMD_STR="${RUN_CMD_ARGS[*]}"
+  bash -c "$RUN_CMD_STR"
 else
   exec "$SHELL_CMD"
 fi
