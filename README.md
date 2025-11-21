@@ -59,7 +59,9 @@ Follow these steps to set up your development environment:
     # You can also specify the system or shell explicitly
     ./scripts/dev --system x86_64-linux --shell zsh
 
-    # Run a command without entering the interactive shell
+    # Run a command without entering the interactive shell (supports multiple args)
+    ./scripts/dev --run python --version
+    # Or run a shell command (use quotes for a sequence):
     ./scripts/dev --run 'python --version; uv --version'
 
     # Use help to see available flags

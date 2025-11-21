@@ -9,8 +9,8 @@
     let
       # Provide dev shells for multiple systems so you can choose at
       # `nix develop .#devShells.<system>.default` without editing this file.
-      # Add the common Linux x86 host so CI and local x86_64 runners work
-      supportedSystems = [ "aarch64-linux" "aarch64-darwin" "x86_64-linux" ];
+      # Add common systems; include macOS x86_64 & zsh support for users & CI
+      supportedSystems = [ "aarch64-linux" "aarch64-darwin" "x86_64-linux" "x86_64-darwin" ];
 
       mkDevShellFor = system: let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -21,6 +21,7 @@
           uv              # The package manager
           stdenv.cc.cc.lib # C libraries often needed for AI/ML wheels
           zlib            # Common dependency
+          zsh             # Provide zsh inside the dev shell for convenience
           github-cli      # GitHub CLI for repository management
         ];
 

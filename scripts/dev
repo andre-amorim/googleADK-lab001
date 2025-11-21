@@ -8,6 +8,7 @@ set -euo pipefail
 SYSTEM=""
 SHELL_ARG=""
 RUN_CMD=""
+RUN_CMD_ARGS=()
 
 show_help(){
 	cat <<'EOF'
@@ -35,7 +36,10 @@ while [[ $# -gt 0 ]]; do
 		--shell)
 			SHELL_ARG="$2"; shift 2;;
 		--run)
-			RUN_CMD="$2"; shift 2;;
+			# capture the rest of the tokens as the run command
+			shift
+			RUN_CMD_ARGS=("$@")
+			break;;
 		-h|--help)
 			show_help; exit 0;;
 		*)
@@ -82,8 +86,9 @@ if [[ -z "$SHELL_ARG" ]]; then
 fi
 
 # Run the internal script inside the nix dev shell
-if [[ -n "$RUN_CMD" ]]; then
-	nix develop .#devShells.${SYSTEM}.default --command ./scripts/dev-internal --run "$RUN_CMD"
+if [[ ${#RUN_CMD_ARGS[@]} -gt 0 ]]; then
+	# Pass run args unmodified to the internal script
+	nix develop .#devShells.${SYSTEM}.default --command ./scripts/dev-internal --run "${RUN_CMD_ARGS[@]}"
 else
 	nix develop .#devShells.${SYSTEM}.default --command ./scripts/dev-internal "$SHELL_ARG"
 fi

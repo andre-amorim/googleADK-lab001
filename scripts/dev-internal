@@ -6,11 +6,14 @@ set -euo pipefail
 
 SHELL_CMD="bash"
 RUN_CMD=""
+RUN_CMD_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --run)
-      shift; RUN_CMD="$*"; break;;
+      shift
+      RUN_CMD_ARGS=("$@")
+      break;;
     --shell)
       SHELL_CMD="$2"; shift 2;;
     -h|--help)
@@ -33,8 +36,9 @@ echo "🧪 Dev env ready: Python $(python --version) , uv $(uv --version)"
 VENV_BIN="$(pwd)/.venv/bin"
 export PATH="$VENV_BIN:$PATH"
 
-if [[ -n "$RUN_CMD" ]]; then
-  bash -c "$RUN_CMD"
+if [[ ${#RUN_CMD_ARGS[@]} -gt 0 ]]; then
+  # Execute the provided command (preserve arguments):
+  exec "${RUN_CMD_ARGS[@]}"
 else
   exec "$SHELL_CMD"
 fi
