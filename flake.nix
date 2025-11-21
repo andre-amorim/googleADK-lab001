@@ -19,6 +19,7 @@
           uv              # The package manager
           stdenv.cc.cc.lib # C libraries often needed for AI/ML wheels
           zlib            # Common dependency
+          github-cli      # GitHub CLI for repository management
         ];
 
         # 2. The Environment Hook
