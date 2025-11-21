@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# This script runs inside the nix dev environment.
+# Usage: dev-internal [--run <command>] [shell]
+
+if [ "${1-}" = "--run" ]; then
+  shift
+  CMD="$*"
+  if [ ! -d .venv ]; then
+    echo "Creating uv venv..."
+    uv venv --python "$(which python)"
+  fi
+  # shellcheck disable=SC1091
+  source .venv/bin/activate
+  echo "🧪 Dev env ready: Python $(python --version) , uv $(uv --version)"
+  # Ensure venv binaries are used during the command run (and avoid login shell overriding PATH)
+  VENV_BIN="$(pwd)/.venv/bin"
+  PATH="$VENV_BIN:$PATH" bash -c "$CMD"
+else
+  SHELL=${1:-bash}
+  if [ ! -d .venv ]; then
+    echo "Creating uv venv..."
+    uv venv --python "$(which python)"
+  fi
+  # shellcheck disable=SC1091
+  source .venv/bin/activate
+  echo "🧪 Dev env ready: Python $(python --version) , uv $(uv --version)"
+  exec "$SHELL"
+fi

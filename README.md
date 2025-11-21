@@ -47,6 +47,18 @@ Follow these steps to set up your development environment:
     ```bash
     # Pick the devShell for the desired system, for example aarch64-linux
     nix develop .#devShells.aarch64-linux.default
+
+    # Or use the convenience script that also prepares a uv venv for you:
+    # - Creates a `.venv` (if missing)
+    # - Activates the `.venv` and opens an interactive shell
+    # - Supports `--run` to execute a one-off command and exit
+    ```bash
+    # Start an interactive bash shell with the venv activated
+    ./scripts/dev aarch64-linux
+
+    # Run a command without entering the interactive shell
+    ./scripts/dev aarch64-linux --run 'python --version; uv --version'
+    ```
     ```
 
 3.  **Create Virtual Environment**:

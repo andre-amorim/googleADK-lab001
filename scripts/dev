@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Usage: scripts/dev [system] [--run <command>|<shell>]
+# If --run is given, runs the provided command and exits.
+# Otherwise, opens an interactive shell inside the nixdev environment (default bash).
+
+SYSTEM=${1:-aarch64-linux}
+shift || true
+
+# Forward all remaining args to the in-nix script
+nix develop .#devShells.${SYSTEM}.default --command ./scripts/dev-internal "$@"
