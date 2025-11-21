@@ -9,7 +9,8 @@
     let
       # Provide dev shells for multiple systems so you can choose at
       # `nix develop .#devShells.<system>.default` without editing this file.
-      supportedSystems = [ "aarch64-linux" "aarch64-darwin" ];
+      # Add the common Linux x86 host so CI and local x86_64 runners work
+      supportedSystems = [ "aarch64-linux" "aarch64-darwin" "x86_64-linux" ];
 
       mkDevShellFor = system: let
         pkgs = nixpkgs.legacyPackages.${system};

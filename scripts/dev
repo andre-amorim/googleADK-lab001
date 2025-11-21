@@ -1,12 +1,90 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: scripts/dev [system] [--run <command>|<shell>]
+# Usage: scripts/dev [--system <system>] [--shell <shell>] [--run <command>]
 # If --run is given, runs the provided command and exits.
-# Otherwise, opens an interactive shell inside the nixdev environment (default bash).
+# Otherwise, opens an interactive shell inside the nixdev environment (default: $SHELL or bash).
 
-SYSTEM=${1:-aarch64-linux}
-shift || true
+SYSTEM=""
+SHELL_ARG=""
+RUN_CMD=""
 
-# Forward all remaining args to the in-nix script
-nix develop .#devShells.${SYSTEM}.default --command ./scripts/dev-internal "$@"
+show_help(){
+	cat <<'EOF'
+Usage: scripts/dev [--system <system>] [--shell <shell>] [--run <command>]
+
+Examples:
+	# auto-detect system and open an interactive shell (default shell):
+	./scripts/dev
+
+	# specify the system explicitly
+	./scripts/dev --system aarch64-linux
+
+	# specify shell
+	./scripts/dev --shell zsh
+
+	# run a one-off command
+	./scripts/dev --run 'python --version'
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		--system)
+			SYSTEM="$2"; shift 2;;
+		--shell)
+			SHELL_ARG="$2"; shift 2;;
+		--run)
+			RUN_CMD="$2"; shift 2;;
+		-h|--help)
+			show_help; exit 0;;
+		*)
+			# If the first bare argument looks like a system string, accept it
+			if [[ -z "$SYSTEM" && "$1" == *"-"* ]]; then
+				SYSTEM="$1"; shift;
+			else
+				echo "Unknown arg: $1"; exit 1;
+			fi
+			;;
+	esac
+done
+
+# Auto-detect system if not provided
+if [[ -z "$SYSTEM" ]]; then
+	OS=$(uname -s)
+	ARCH=$(uname -m)
+	if [[ "$OS" == "Darwin" ]]; then
+		if [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
+			SYSTEM="aarch64-darwin"
+		else
+			SYSTEM="x86_64-darwin"
+		fi
+	elif [[ "$OS" == "Linux" ]]; then
+		if [[ "$ARCH" == "x86_64" ]]; then
+			SYSTEM="x86_64-linux"
+		elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+			SYSTEM="aarch64-linux"
+		else
+			SYSTEM="x86_64-linux"
+		fi
+	else
+		SYSTEM="x86_64-linux"
+	fi
+fi
+
+# Default shell
+if [[ -z "$SHELL_ARG" ]]; then
+	if [[ -n "${SHELL-}" ]]; then
+		SHELL_ARG=$(basename "$SHELL")
+	else
+		SHELL_ARG="bash"
+	fi
+fi
+
+# Run the internal script inside the nix dev shell
+if [[ -n "$RUN_CMD" ]]; then
+	nix develop .#devShells.${SYSTEM}.default --command ./scripts/dev-internal --run "$RUN_CMD"
+else
+	nix develop .#devShells.${SYSTEM}.default --command ./scripts/dev-internal "$SHELL_ARG"
+fi
+

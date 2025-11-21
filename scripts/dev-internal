@@ -2,29 +2,40 @@
 set -euo pipefail
 
 # This script runs inside the nix dev environment.
-# Usage: dev-internal [--run <command>] [shell]
+# Usage: dev-internal [--run <command>] [--shell <shell>] [shell]
 
-if [ "${1-}" = "--run" ]; then
-  shift
-  CMD="$*"
-  if [ ! -d .venv ]; then
-    echo "Creating uv venv..."
-    uv venv --python "$(which python)"
-  fi
-  # shellcheck disable=SC1091
-  source .venv/bin/activate
-  echo "🧪 Dev env ready: Python $(python --version) , uv $(uv --version)"
-  # Ensure venv binaries are used during the command run (and avoid login shell overriding PATH)
-  VENV_BIN="$(pwd)/.venv/bin"
-  PATH="$VENV_BIN:$PATH" bash -c "$CMD"
-else
-  SHELL=${1:-bash}
-  if [ ! -d .venv ]; then
-    echo "Creating uv venv..."
-    uv venv --python "$(which python)"
-  fi
-  # shellcheck disable=SC1091
-  source .venv/bin/activate
-  echo "🧪 Dev env ready: Python $(python --version) , uv $(uv --version)"
-  exec "$SHELL"
+SHELL_CMD="bash"
+RUN_CMD=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --run)
+      shift; RUN_CMD="$*"; break;;
+    --shell)
+      SHELL_CMD="$2"; shift 2;;
+    -h|--help)
+      echo "Usage: dev-internal [--run <command>] [--shell <shell>]"; exit 0;;
+    *)
+      # Any bare argument is treated as the shell to run
+      SHELL_CMD="$1"; shift;;
+  esac
+done
+
+if [[ ! -d .venv ]]; then
+  echo "Creating uv venv..."
+  uv venv --python "$(which python)"
 fi
+
+# shellcheck disable=SC1091
+source .venv/bin/activate
+echo "🧪 Dev env ready: Python $(python --version) , uv $(uv --version)"
+
+VENV_BIN="$(pwd)/.venv/bin"
+export PATH="$VENV_BIN:$PATH"
+
+if [[ -n "$RUN_CMD" ]]; then
+  bash -c "$RUN_CMD"
+else
+  exec "$SHELL_CMD"
+fi
+

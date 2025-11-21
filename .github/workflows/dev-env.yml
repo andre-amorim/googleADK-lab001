@@ -1,0 +1,38 @@
+name: Dev Environment CI
+
+on:
+  push:
+    branches: [ main, feat/multi-system-devshells ]
+  pull_request:
+
+jobs:
+  dev-env-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies for Nix
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl git build-essential
+      - name: Install Nix (no-daemon)
+        run: |
+          sh <(curl -L https://nixos.org/nix/install) --no-daemon
+      - name: Configure Nix
+        shell: bash
+        run: |
+          . $HOME/.nix-profile/etc/profile.d/nix.sh
+          mkdir -p $HOME/.config/nix
+          echo "experimental-features = nix-command flakes" >> $HOME/.config/nix/nix.conf
+      - name: Show the flake
+        shell: bash
+        run: |
+          . $HOME/.nix-profile/etc/profile.d/nix.sh
+          nix --version
+          nix flake show
+      - name: Run the dev script to make sure `.venv` is created
+        shell: bash
+        run: |
+          . $HOME/.nix-profile/etc/profile.d/nix.sh
+          ./scripts/dev --run 'python --version; uv --version'
+      - name: Check .venv has python
+        run: test -x .venv/bin/python

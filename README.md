@@ -53,11 +53,17 @@ Follow these steps to set up your development environment:
     # - Activates the `.venv` and opens an interactive shell
     # - Supports `--run` to execute a one-off command and exit
     ```bash
-    # Start an interactive bash shell with the venv activated
-    ./scripts/dev aarch64-linux
+    # Start an interactive shell (script auto-detects the host system and shell):
+    ./scripts/dev
+
+    # You can also specify the system or shell explicitly
+    ./scripts/dev --system x86_64-linux --shell zsh
 
     # Run a command without entering the interactive shell
-    ./scripts/dev aarch64-linux --run 'python --version; uv --version'
+    ./scripts/dev --run 'python --version; uv --version'
+
+    # Use help to see available flags
+    ./scripts/dev --help
     ```
     ```
 
