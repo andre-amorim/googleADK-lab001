@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Usage: scripts/dev [--system <system>] [--shell <shell>] [--run <command>]
+# If --run is given, runs the provided command and exits.
+# Otherwise, opens an interactive shell inside the nixdev environment (default: $SHELL or bash).
+
+SYSTEM=""
+SHELL_ARG=""
+RUN_CMD=""
+RUN_CMD_ARGS=()
+YES=false
+FORCE=false
+
+show_help(){
+	cat <<'EOF'
+Usage: scripts/dev [--system <system>] [--shell <shell>] [--run <command>]
+
+Examples:
+	# auto-detect system and open an interactive shell (default shell):
+	./scripts/dev
+
+	# specify the system explicitly
+	./scripts/dev --system aarch64-linux
+
+	# specify shell
+	./scripts/dev --shell zsh
+
+	# run a one-off command
+	./scripts/dev --run 'python --version'
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		--system)
+			SYSTEM="$2"; shift 2;;
+		--shell)
+			SHELL_ARG="$2"; shift 2;;
+		--run)
+			# capture the rest of the tokens as the run command
+			shift
+			RUN_CMD_ARGS=("$@")
+			break;;
+		--force)
+			FORCE=true; shift;;
+		--yes|-y)
+			YES=true; shift;;
+		-h|--help)
+			show_help; exit 0;;
+		*)
+			# If the first bare argument looks like a system string, accept it
+			if [[ -z "$SYSTEM" && "$1" == *"-"* ]]; then
+				SYSTEM="$1"; shift;
+			else
+				echo "Unknown arg: $1"; exit 1;
+			fi
+			;;
+	esac
+done
+
+# Auto-detect system if not provided
+if [[ -z "$SYSTEM" ]]; then
+	OS=$(uname -s)
+	ARCH=$(uname -m)
+	if [[ "$OS" == "Darwin" ]]; then
+		if [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
+			SYSTEM="aarch64-darwin"
+		else
+			SYSTEM="x86_64-darwin"
+		fi
+	elif [[ "$OS" == "Linux" ]]; then
+		if [[ "$ARCH" == "x86_64" ]]; then
+			SYSTEM="x86_64-linux"
+		elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+			SYSTEM="aarch64-linux"
+		else
+			SYSTEM="x86_64-linux"
+		fi
+	else
+		SYSTEM="x86_64-linux"
+	fi
+fi
+
+# If --force was supplied we should check whether nix can instantiate the dev shell
+# for the requested system on this host — if not, warn the user before attempting.
+if [[ "$FORCE" == "true" ]]; then
+	echo "⚠️  --force was used — confirming Nix can instantiate the requested system '$SYSTEM'..."
+	if ! nix develop .#devShells.${SYSTEM}.default --command true >/dev/null 2>&1; then
+		echo "⚠️  Warning: Nix failed to instantiate the dev shell for '$SYSTEM' on this host."
+		echo "This usually means the requested system is incompatible with the host architecture."
+		echo "You can rerun without --force to auto-fallback to the host system, or run the script on a matching host."
+		if [[ "$YES" == "true" ]]; then
+			echo "--yes specified, continuing despite failure..."
+		else
+			# Ask user for explicit confirmation
+			read -r -p "Do you want to continue anyway? [y/N] " _REPLY || true
+			case "${_REPLY}" in
+				[yY]|[yY][eE][sS])
+					echo "Proceeding as requested...";;
+				*)
+					echo "Aborting."; exit 1;;
+			esac
+		fi
+	else
+		echo "✅  Nix can instantiate dev shell for '$SYSTEM'. Proceeding..."
+	fi
+fi
+
+# Default shell
+if [[ -z "$SHELL_ARG" ]]; then
+	if [[ -n "${SHELL-}" ]]; then
+		SHELL_ARG=$(basename "$SHELL")
+	else
+		SHELL_ARG="bash"
+	fi
+fi
+
+# If a system was requested explicitly, ensure it matches the detected host system
+if [[ -n "$SYSTEM" ]]; then
+	DETECTED=""
+	OS=$(uname -s)
+	ARCH=$(uname -m)
+	if [[ "$OS" == "Darwin" ]]; then
+		if [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
+			DETECTED="aarch64-darwin"
+		else
+			DETECTED="x86_64-darwin"
+		fi
+	elif [[ "$OS" == "Linux" ]]; then
+		if [[ "$ARCH" == "x86_64" ]]; then
+			DETECTED="x86_64-linux"
+		elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+			DETECTED="aarch64-linux"
+		else
+			DETECTED="x86_64-linux"
+		fi
+	else
+		DETECTED="x86_64-linux"
+	fi
+
+	if [[ "$SYSTEM" != "$DETECTED" && "$FORCE" != "true" ]]; then
+		echo "⚠️  Requested system '$SYSTEM' differs from detected system '$DETECTED'."
+		echo "Switching to detected system '$DETECTED' to avoid build error."
+		SYSTEM="$DETECTED"
+	fi
+fi
+
+# Run the internal script inside the nix dev shell
+if [[ ${#RUN_CMD_ARGS[@]} -gt 0 ]]; then
+	# Pass run args unmodified to the internal script
+	nix develop .#devShells.${SYSTEM}.default --command ./scripts/dev-internal --run "${RUN_CMD_ARGS[@]}"
+else
+	nix develop .#devShells.${SYSTEM}.default --command ./scripts/dev-internal "$SHELL_ARG"
+fi
+

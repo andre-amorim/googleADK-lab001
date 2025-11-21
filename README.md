@@ -19,11 +19,65 @@ Ensure you have Nix installed on your system.
 
 Follow these steps to set up your development environment:
 
-1.  **Configure Architecture**: Open `flake.nix` and ensure the system variable in the `[USER CONFIGURATION]` block matches your machine's architecture (e.g., `aarch64-darwin` for Apple Silicon, `x86_64-linux` for Linux).
+1.  **Choose a dev shell (multi-system)**: This repository now provides pre-configured Nix development shells for multiple platforms (e.g., `aarch64-linux` and `aarch64-darwin`) so you don't need to edit `flake.nix` to switch targets.
+
+        - Show available dev shells:
+            ```bash
+            nix flake show
+            ```
+
+        - Start the Linux ARM64 dev shell:
+            ```bash
+            nix develop .#devShells.aarch64-linux.default
+            ```
+
+        - Start the macOS Apple Silicon dev shell (on macOS hosts only):
+            ```bash
+            nix develop .#devShells.aarch64-darwin.default
+            ```
+
+        - Run commands directly without entering a full shell:
+            ```bash
+            nix develop .#devShells.aarch64-linux.default --command python --version
+            ```
+
+        - Note: On a Linux host, attempting to enter an `aarch64-darwin` shell will fail (expected) unless you are using macOS.
 
 2.  **Enter Nix Environment**:
     ```bash
-    nix develop
+    # Pick the devShell for the desired system, for example aarch64-linux
+    nix develop .#devShells.aarch64-linux.default
+
+    # Or use the convenience script that also prepares a uv venv for you:
+    # - Creates a `.venv` (if missing)
+    # - Activates the `.venv` and opens an interactive shell
+    # - Supports `--run` to execute a one-off command and exit
+    ```bash
+    # Start an interactive shell (script auto-detects the host system and shell):
+    ./scripts/dev
+
+    # You can also specify the system or shell explicitly
+    ./scripts/dev --system x86_64-linux --shell zsh
+
+    # If you request a system that doesn't match your host (e.g., asking
+    # for `x86_64-linux` on an `aarch64` machine), the script will auto-fallback
+    # to the detected system and print a warning. Use `--force` to bypass the
+    # auto-fallback and attempt the requested system (may fail on incompatible hosts).
+    ./scripts/dev --system x86_64-linux --force --run 'python --version'
+
+    # If `--force` is used and Nix cannot instantiate the requested system,
+    # the script prompts interactively asking for confirmation to continue.
+    # Use `--yes` or `-y` to bypass this interactive prompt.
+    ./scripts/dev --system x86_64-linux --force --yes --run 'python --version'
+
+    # Run a command without entering the interactive shell (supports multiple args)
+    ./scripts/dev --run python --version
+    # Or run a shell command (use quotes for a sequence):
+    ./scripts/dev --run 'python --version; uv --version'
+
+    # Use help to see available flags
+    ./scripts/dev --help
+    ```
     ```
 
 3.  **Create Virtual Environment**:

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# This script runs inside the nix dev environment.
+# Usage: dev-internal [--run <command>] [--shell <shell>] [shell]
+
+SHELL_CMD="bash"
+RUN_CMD=""
+RUN_CMD_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --run)
+      shift
+      RUN_CMD_ARGS=("$@")
+      break;;
+    --shell)
+      SHELL_CMD="$2"; shift 2;;
+    -h|--help)
+      echo "Usage: dev-internal [--run <command>] [--shell <shell>]"; exit 0;;
+    *)
+      # Any bare argument is treated as the shell to run
+      SHELL_CMD="$1"; shift;;
+  esac
+done
+
+if [[ ! -d .venv ]]; then
+  echo "Creating uv venv..."
+  uv venv --python "$(which python)"
+fi
+
+# shellcheck disable=SC1091
+source .venv/bin/activate
+echo "🧪 Dev env ready: Python $(python --version) , uv $(uv --version)"
+
+VENV_BIN="$(pwd)/.venv/bin"
+export PATH="$VENV_BIN:$PATH"
+
+if [[ ${#RUN_CMD_ARGS[@]} -gt 0 ]]; then
+  # Join the args into a single command string and run via bash -c so shell
+  # features (pipes, semicolons, expansion) work. This makes --run accept
+  # commands like: --run 'python -m http.server 8000' or --run "python -c 'print(1)'".
+  RUN_CMD_STR="${RUN_CMD_ARGS[*]}"
+  bash -c "$RUN_CMD_STR"
+else
+  exec "$SHELL_CMD"
+fi
+
