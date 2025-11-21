@@ -79,6 +79,19 @@ if [[ -z "$SYSTEM" ]]; then
 	fi
 fi
 
+# If --force was supplied we should check whether nix can instantiate the dev shell
+# for the requested system on this host — if not, warn the user before attempting.
+if [[ "$FORCE" == "true" ]]; then
+	echo "⚠️  --force was used — confirming Nix can instantiate the requested system '$SYSTEM'..."
+	if ! nix develop .#devShells.${SYSTEM}.default --command true >/dev/null 2>&1; then
+		echo "⚠️  Warning: Nix failed to instantiate the dev shell for '$SYSTEM' on this host."
+		echo "This usually means the requested system is incompatible with the host architecture."
+		echo "You can rerun without --force to auto-fallback to the host system, or run the script on a matching host."
+	else
+		echo "✅  Nix can instantiate dev shell for '$SYSTEM'. Proceeding..."
+	fi
+fi
+
 # Default shell
 if [[ -z "$SHELL_ARG" ]]; then
 	if [[ -n "${SHELL-}" ]]; then
