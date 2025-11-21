@@ -65,6 +65,11 @@ Follow these steps to set up your development environment:
     # auto-fallback and attempt the requested system (may fail on incompatible hosts).
     ./scripts/dev --system x86_64-linux --force --run 'python --version'
 
+    # If `--force` is used and Nix cannot instantiate the requested system,
+    # the script prompts interactively asking for confirmation to continue.
+    # Use `--yes` or `-y` to bypass this interactive prompt.
+    ./scripts/dev --system x86_64-linux --force --yes --run 'python --version'
+
     # Run a command without entering the interactive shell (supports multiple args)
     ./scripts/dev --run python --version
     # Or run a shell command (use quotes for a sequence):

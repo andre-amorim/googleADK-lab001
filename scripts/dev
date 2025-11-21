@@ -9,6 +9,7 @@ SYSTEM=""
 SHELL_ARG=""
 RUN_CMD=""
 RUN_CMD_ARGS=()
+YES=false
 FORCE=false
 
 show_help(){
@@ -43,6 +44,8 @@ while [[ $# -gt 0 ]]; do
 			break;;
 		--force)
 			FORCE=true; shift;;
+		--yes|-y)
+			YES=true; shift;;
 		-h|--help)
 			show_help; exit 0;;
 		*)
@@ -87,6 +90,18 @@ if [[ "$FORCE" == "true" ]]; then
 		echo "⚠️  Warning: Nix failed to instantiate the dev shell for '$SYSTEM' on this host."
 		echo "This usually means the requested system is incompatible with the host architecture."
 		echo "You can rerun without --force to auto-fallback to the host system, or run the script on a matching host."
+		if [[ "$YES" == "true" ]]; then
+			echo "--yes specified, continuing despite failure..."
+		else
+			# Ask user for explicit confirmation
+			read -r -p "Do you want to continue anyway? [y/N] " _REPLY || true
+			case "${_REPLY}" in
+				[yY]|[yY][eE][sS])
+					echo "Proceeding as requested...";;
+				*)
+					echo "Aborting."; exit 1;;
+			esac
+		fi
 	else
 		echo "✅  Nix can instantiate dev shell for '$SYSTEM'. Proceeding..."
 	fi
