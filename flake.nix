@@ -7,12 +7,13 @@
 
   outputs = { self, nixpkgs }:
     let
-      # Explicitly using your architecture
-      system = "aarch64-darwin"; # For Apple Silicon macOS
-      pkgs = nixpkgs.legacyPackages.${system};
-    in
-    {
-      devShells.${system}.default = pkgs.mkShell {
+      # Provide dev shells for multiple systems so you can choose at
+      # `nix develop .#devShells.<system>.default` without editing this file.
+      supportedSystems = [ "aarch64-linux" "aarch64-darwin" ];
+
+      mkDevShellFor = system: let
+        pkgs = nixpkgs.legacyPackages.${system};
+      in pkgs.mkShell {
         # 1. The Tools we need (Nix provides these)
         buildInputs = with pkgs; [
           python311       # The interpreter
@@ -32,5 +33,10 @@
           echo "uv: $(uv --version)"
         '';
       };
+
+    # Convert the list of systems into an attribute set of devShells
+    # (devShells.${system}.default) so flakes tooling can find them.
+    in {
+      devShells = builtins.listToAttrs (map (s: { name = s; value = { default = mkDevShellFor s; }; }) supportedSystems);
     };
 }
